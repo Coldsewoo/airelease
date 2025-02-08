@@ -24,7 +24,7 @@ const configParsers = {
   OPENAI_KEY(key?: string) {
     if (!key) {
       throw new KnownError(
-        "Please set your OpenAI API key via `aicommits config set OPENAI_KEY=<your token>`"
+        "Please set your OpenAI API key via `airelease config set OPENAI_KEY=<your token>`"
       );
     }
     parseAssert("OPENAI_KEY", key.startsWith("sk-"), 'Must start with "sk-"');
