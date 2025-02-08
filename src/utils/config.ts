@@ -6,10 +6,6 @@ import type { TiktokenModel } from "@dqbd/tiktoken";
 import { fileExists } from "./fs.js";
 import { KnownError } from "./error.js";
 
-const commitTypes = ["", "conventional"] as const;
-
-export type CommitType = (typeof commitTypes)[number];
-
 const { hasOwnProperty } = Object.prototype;
 export const hasOwn = (object: unknown, key: PropertyKey) =>
   hasOwnProperty.call(object, key);

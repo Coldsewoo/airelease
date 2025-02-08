@@ -18,14 +18,12 @@ import {
 import { getConfig } from "../utils/config.js";
 import { generateCommitMessage } from "../utils/openai.js";
 import { KnownError, handleCliError } from "../utils/error.js";
-import { assertArgv } from "../utils/npm.js";
 
 export default async (target_tag: string | undefined, rawArgv: string[]) =>
   (async () => {
     intro(bgCyan(black(" airelease ")));
     await assertGitRepo();
     await assertCleanWorkingTree();
-    await assertArgv(rawArgv);
 
     const detectingFiles = spinner();
 

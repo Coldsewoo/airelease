@@ -2,9 +2,10 @@ import { cli } from "cleye";
 import { description, version } from "../package.json";
 import configCommand from "./command/config.js";
 import airelease from "./command/airelease.js";
+import { assertArgv } from "./utils/npm.js";
 
 const rawArgv = process.argv.slice(2);
-
+assertArgv(rawArgv);
 cli(
   {
     name: "airelease",

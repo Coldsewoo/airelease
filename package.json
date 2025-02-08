@@ -24,7 +24,7 @@
     "air": "./dist/cli.mjs"
   },
   "scripts": {
-    "build": "pkgroll --minify",
+    "build": "pkgroll",
     "lint": "",
     "type-check": "tsc",
     "test": "tsx tests",
