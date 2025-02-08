@@ -41,7 +41,7 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
       `${getDetectedCommits(
         commitMessages.commits,
         commitMessages.previous_tag
-      )}}`
+      )}:\n${commitMessages.commits.map((file) => `     ${file}`).join("\n")}`
     );
 
     const { env } = process;
