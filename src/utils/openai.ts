@@ -104,8 +104,19 @@ const createChatCompletion = async (
 const sanitizeMessage = (message: string) => {
   return message
     .trim()
-    .replace(/[\n\r]/g, "\n")
-    .replace(/(\w)\.$/, "$1");
+    .replace(/[\n\r]+/g, "\n") // Normalize line breaks
+    .replace(/(\w)\.$/, "$1") // Remove trailing period if after a word
+    .replace(/(`{1,3})(.*?)\1/g, "$2") // Remove inline and block code backticks
+    .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold markdown syntax
+    .replace(/\*(.*?)\*/g, "$1") // Remove italic markdown syntax
+    .replace(/~~(.*?)~~/g, "$1") // Remove strikethrough syntax
+    .replace(/!\[.*?\]\(.*?\)/g, "") // Remove image syntax
+    .replace(/\[.*?\]\(.*?\)/g, "") // Remove link syntax
+    .replace(/#+\s*(.*?)/g, "$1") // Remove heading markdown
+    .replace(/>\s*/g, "") // Remove blockquote syntax
+    .replace(/[-*+]\s+/g, "") // Remove list item markers
+    .replace(/(\d+)\.\s+/g, "") // Remove numbered list markers
+    .replace(/\\(.)/g, "$1"); // Unescape escaped characters
 };
 
 const deduplicateMessages = (array: string[]) => Array.from(new Set(array));
@@ -116,7 +127,7 @@ export const generateCommitMessage = async (
   locale: string,
   commitMessages: string,
   completions: number,
-  timeout: number,
+  timeout: number
 ) => {
   try {
     const completion = await createChatCompletion(
