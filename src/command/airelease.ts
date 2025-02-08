@@ -10,6 +10,7 @@ import {
 } from "@clack/prompts";
 
 import {
+  assertCleanWorkingTree,
   assertGitRepo,
   getCommitMessagesFromPrevRelease,
   getDetectedCommits,
@@ -23,6 +24,7 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
   (async () => {
     intro(bgCyan(black(" airelease ")));
     await assertGitRepo();
+    await assertCleanWorkingTree();
     await assertArgv(rawArgv);
 
     const detectingFiles = spinner();

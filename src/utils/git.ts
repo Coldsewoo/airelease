@@ -15,6 +15,18 @@ export const assertGitRepo = async () => {
   return stdout;
 };
 
+export const assertCleanWorkingTree = async () => {
+  const { stdout } = await execa("git", ["status", "--porcelain"], {
+    reject: false,
+  });
+
+  if (stdout) {
+    throw new KnownError(
+      "The working directory has uncommitted changes. Please commit or stash them."
+    );
+  }
+};
+
 const getPreviousReleaseTag = async () => {
   const { stdout } = await execa("git", ["describe", "--tags", "--abbrev=0"]);
   return stdout;
