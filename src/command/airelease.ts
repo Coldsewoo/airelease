@@ -91,8 +91,10 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
       "--abbrev=0",
     ]);
 
+    console.log(`Version: ${version}`);
+
     // override commit message
-    await execa("git", ["commit", "-am", message]);
+    await execa("git", ["commit", "--amend", "-m", message]);
 
     // tag the new version
     await execa("git", ["tag", version, "-f"]);
