@@ -4,7 +4,8 @@ export const generatePrompt = (locale: string = "English") => {
     `Message language: ${locale}`,
     "Use bullet points in an unordered list format and attach type as prefix for each list (e.g. feature, bug fix, refactor, etc.)",
     "You must group commit messages by type prefix. and attach header for each group",
-    "Exclude anything unnecessary such as translation. Make response as text only and Remove format for MD. ",
+    "Exclude anything unnecessary such as translation. Make response as text only ",
+    "Remove any unnecessary information such as translation, markdown syntax, or code snippets",
   ]
     .filter(Boolean)
     .join("\n");
