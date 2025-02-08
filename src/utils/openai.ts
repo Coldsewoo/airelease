@@ -109,7 +109,7 @@ const sanitizeMessage = (message: string) => {
     .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold markdown syntax
     .replace(/\*(.*?)\*/g, "$1") // Remove italic markdown syntax
     .replace(/~~(.*?)~~/g, "$1") // Remove strikethrough syntax
-    .replace(/#+\s*(.*?)/g, "$1"); // Remove heading markdown
+    .replace(/^\s+?#+\s*(.*?)/g, "$1"); // Remove heading markdown
 };
 
 const deduplicateMessages = (array: string[]) => Array.from(new Set(array));
