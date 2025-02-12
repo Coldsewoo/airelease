@@ -93,7 +93,7 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
 
     message = version + "\n\n" + message;
 
-    console.log(`Version: ${version}`);
+    outro(`Version: ${green(version)}`);
 
     // override commit message
     await execa("git", ["commit", "--amend", "-m", message]);
