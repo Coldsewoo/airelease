@@ -91,6 +91,8 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
       "--abbrev=0",
     ]);
 
+    message = version + "\n\n" + message;
+
     console.log(`Version: ${version}`);
 
     // override commit message
