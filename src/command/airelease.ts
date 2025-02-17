@@ -6,6 +6,7 @@ import {
   spinner,
   select,
   confirm,
+  text,
   isCancel,
 } from "@clack/prompts";
 
@@ -41,7 +42,8 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
       `${getDetectedCommits(
         commitMessages.commits,
         commitMessages.previous_tag
-      )}:\n${commitMessages.commits.map((file) => `     ${file}`).join("\n")}`
+      )}:
+${commitMessages.commits.map((file) => `     ${file}`).join("\n")}`
     );
 
     const { env } = process;
@@ -70,15 +72,34 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
     }
 
     let message: string;
-
     [message] = messages;
-    const confirmed = await confirm({
-      message: `Use this release message?\n\n   ${message}\n`,
+
+    const action = await select({
+      message: `Use this release message or edit it?\n\n   ${message}\n`,
+      options: [
+        { value: "accept", label: "Accept" },
+        { value: "edit", label: "Edit" },
+        { value: "cancel", label: "Cancel" },
+      ],
     });
 
-    if (!confirmed || isCancel(confirmed)) {
+    if (isCancel(action) || action === "cancel") {
       outro("Release cancelled");
       return;
+    }
+
+    if (action === "edit") {
+      const editedMessage = await text({
+        message: "Edit your commit message:",
+        initialValue: message,
+      });
+
+      if (isCancel(editedMessage)) {
+        outro("Release cancelled");
+        return;
+      }
+
+      message = editedMessage;
     }
 
     // release next version
