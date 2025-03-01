@@ -69,17 +69,104 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
       throw new KnownError("No commit messages were generated. Try again.");
     }
 
-    let message: string;
-
-    [message] = messages;
-    const confirmed = await confirm({
-      message: `Use this release message?\n\n   ${message}\n`,
+    let message: string = messages[0];
+    
+    // Present options to the user
+    const action = await select({
+      message: `Generated release message:\n\n   ${message}\n\nWhat would you like to do?`,
+      options: [
+        { value: 'commit', label: 'Just commit' },
+        { value: 'edit', label: 'Edit message' },
+        { value: 'cancel', label: 'Cancel release' }
+      ]
     });
 
-    if (!confirmed || isCancel(confirmed)) {
+    if (isCancel(action) || action === 'cancel') {
       outro("Release cancelled");
       return;
     }
+
+    // If user wants to edit, let them do so
+    if (action === 'edit') {
+      // Use the OS's default editor for multiline editing with proper line break support
+      const fs = await import('fs/promises');
+      const os = await import('os');
+      const path = await import('path');
+      
+      // Create a temporary file with the message
+      const tmpDir = os.tmpdir();
+      const tmpFile = path.join(tmpDir, `release-message-${Date.now()}.txt`);
+      
+      // Write initial message to the temp file
+      await fs.writeFile(tmpFile, message);
+      
+      // Use editor from config instead of env var
+      // Priority: config.editor -> EDITOR env var -> platform default
+      const editorToUse = config.editor || process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi');
+      
+      try {
+        outro(`Opening message in ${editorToUse}. Save and close when finished.`);
+        
+        // Use spawn directly to properly handle terminal interaction
+        const { spawn } = await import('child_process');
+        const editorProcess = spawn(editorToUse, [tmpFile], {
+          stdio: 'inherit',
+          shell: true
+        });
+        
+        // Wait for the editor to close
+        await new Promise((resolve, reject) => {
+          editorProcess.on('exit', (code) => {
+            if (code === 0) {
+              resolve(code);
+            } else {
+              reject(new Error(`Editor exited with code ${code}`));
+            }
+          });
+          editorProcess.on('error', reject);
+        });
+        
+        intro(bgCyan(black(" airelease ")));
+        
+        // Read the edited message
+        const editedMessage = await fs.readFile(tmpFile, 'utf8');
+        
+        // Clean up
+        await fs.unlink(tmpFile);
+        
+        if (!editedMessage.trim()) {
+          throw new KnownError("Empty commit message. Release cancelled.");
+        }
+        
+        message = editedMessage;
+      } catch (error) {
+        // Clean up on error
+        try {
+          await fs.access(tmpFile);
+          await fs.unlink(tmpFile);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        
+        if (error instanceof KnownError) {
+          throw error;
+        }
+        
+        throw new KnownError("Failed to edit message. Release cancelled.");
+      }
+      
+      // Confirm the edited message
+      const confirmed = await confirm({
+        message: `Use this edited message?\n\n   ${message}\n`,
+      });
+
+      if (!confirmed || isCancel(confirmed)) {
+        outro("Release cancelled");
+        return;
+      }
+    }
+    
+    // No additional confirmation needed for 'commit' path as they've already chosen to commit
 
     // release next version
     await execa("npm", ["version", ...rawArgv]);
