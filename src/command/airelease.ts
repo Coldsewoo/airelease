@@ -89,8 +89,7 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
     // If user wants to edit, let them do so
     if (action === 'edit') {
       // Use the OS's default editor for multiline editing with proper line break support
-      const { execa } = await import('execa');
-      const fs = await import('fs');
+      const fs = await import('fs/promises');
       const os = await import('os');
       const path = await import('path');
       
@@ -99,21 +98,40 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
       const tmpFile = path.join(tmpDir, `release-message-${Date.now()}.txt`);
       
       // Write initial message to the temp file
-      fs.writeFileSync(tmpFile, message);
+      await fs.writeFile(tmpFile, message);
       
       // Open in default editor - opens the default text editor on the user's system
       const editor = process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi');
       
       try {
-        s.start(`Opening message in ${editor}. Save and close when finished.`);
-        await execa(editor, [tmpFile], { stdio: 'inherit' });
-        s.stop('Editor closed');
+        outro(`Opening message in ${editor}. Save and close when finished.`);
+        
+        // Use spawn directly to properly handle terminal interaction
+        const { spawn } = await import('child_process');
+        const editorProcess = spawn(editor, [tmpFile], {
+          stdio: 'inherit',
+          shell: true
+        });
+        
+        // Wait for the editor to close
+        await new Promise((resolve, reject) => {
+          editorProcess.on('exit', (code) => {
+            if (code === 0) {
+              resolve(code);
+            } else {
+              reject(new Error(`Editor exited with code ${code}`));
+            }
+          });
+          editorProcess.on('error', reject);
+        });
+        
+        intro(bgCyan(black(" airelease ")));
         
         // Read the edited message
-        const editedMessage = fs.readFileSync(tmpFile, 'utf8');
+        const editedMessage = await fs.readFile(tmpFile, 'utf8');
         
         // Clean up
-        fs.unlinkSync(tmpFile);
+        await fs.unlink(tmpFile);
         
         if (!editedMessage.trim()) {
           throw new KnownError("Empty commit message. Release cancelled.");
@@ -123,9 +141,8 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
       } catch (error) {
         // Clean up on error
         try {
-          if (fs.existsSync(tmpFile)) {
-            fs.unlinkSync(tmpFile);
-          }
+          await fs.access(tmpFile);
+          await fs.unlink(tmpFile);
         } catch (e) {
           // Ignore cleanup errors
         }
