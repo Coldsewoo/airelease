@@ -7,6 +7,7 @@ import {
   select,
   confirm,
   isCancel,
+  text,
 } from "@clack/prompts";
 
 import {
@@ -69,17 +70,52 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
       throw new KnownError("No commit messages were generated. Try again.");
     }
 
-    let message: string;
+    let message: string = messages[0];
 
-    [message] = messages;
-    const confirmed = await confirm({
-      message: `Use this release message?\n\n   ${message}\n`,
+    // Present options to the user
+    const action = await select({
+      message: `Generated release message:\n\n   ${message}\n\nWhat would you like to do?`,
+      options: [
+        { value: "commit", label: "Commit" },
+        { value: "edit", label: "Edit message" },
+        { value: "cancel", label: "Cancel" },
+      ],
     });
 
-    if (!confirmed || isCancel(confirmed)) {
+    if (isCancel(action) || action === "cancel") {
       outro("Release cancelled");
       return;
     }
+
+    // If user wants to edit, let them do so
+    if (action === "edit") {
+      const editedMessage = await text({
+        message: "Edit the release message:",
+        initialValue: message,
+        validate(value) {
+          if (!value) return "Please enter a release message";
+        },
+      });
+
+      if (isCancel(editedMessage)) {
+        outro("Release cancelled");
+        return;
+      }
+
+      message = editedMessage as string;
+
+      // Confirm the edited message
+      const confirmed = await confirm({
+        message: `Use this edited message?\n\n   ${message}\n`,
+      });
+
+      if (!confirmed || isCancel(confirmed)) {
+        outro("Release cancelled");
+        return;
+      }
+    }
+
+    // No additional confirmation needed for 'commit' path as they've already chosen to commit
 
     // release next version
     await execa("npm", ["version", ...rawArgv]);
