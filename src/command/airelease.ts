@@ -7,7 +7,6 @@ import {
   select,
   confirm,
   isCancel,
-  text,
 } from "@clack/prompts";
 
 import {
@@ -71,39 +70,73 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
     }
 
     let message: string = messages[0];
-
+    
     // Present options to the user
     const action = await select({
       message: `Generated release message:\n\n   ${message}\n\nWhat would you like to do?`,
       options: [
-        { value: "commit", label: "Commit" },
-        { value: "edit", label: "Edit message" },
-        { value: "cancel", label: "Cancel" },
-      ],
+        { value: 'commit', label: 'Just commit' },
+        { value: 'edit', label: 'Edit message' },
+        { value: 'cancel', label: 'Cancel release' }
+      ]
     });
 
-    if (isCancel(action) || action === "cancel") {
+    if (isCancel(action) || action === 'cancel') {
       outro("Release cancelled");
       return;
     }
 
     // If user wants to edit, let them do so
-    if (action === "edit") {
-      const editedMessage = await text({
-        message: "Edit the release message:",
-        initialValue: message,
-        validate(value) {
-          if (!value) return "Please enter a release message";
-        },
-      });
-
-      if (isCancel(editedMessage)) {
-        outro("Release cancelled");
-        return;
+    if (action === 'edit') {
+      // Use the OS's default editor for multiline editing with proper line break support
+      const { execa } = await import('execa');
+      const fs = await import('fs');
+      const os = await import('os');
+      const path = await import('path');
+      
+      // Create a temporary file with the message
+      const tmpDir = os.tmpdir();
+      const tmpFile = path.join(tmpDir, `release-message-${Date.now()}.txt`);
+      
+      // Write initial message to the temp file
+      fs.writeFileSync(tmpFile, message);
+      
+      // Open in default editor - opens the default text editor on the user's system
+      const editor = process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi');
+      
+      try {
+        s.start(`Opening message in ${editor}. Save and close when finished.`);
+        await execa(editor, [tmpFile], { stdio: 'inherit' });
+        s.stop('Editor closed');
+        
+        // Read the edited message
+        const editedMessage = fs.readFileSync(tmpFile, 'utf8');
+        
+        // Clean up
+        fs.unlinkSync(tmpFile);
+        
+        if (!editedMessage.trim()) {
+          throw new KnownError("Empty commit message. Release cancelled.");
+        }
+        
+        message = editedMessage;
+      } catch (error) {
+        // Clean up on error
+        try {
+          if (fs.existsSync(tmpFile)) {
+            fs.unlinkSync(tmpFile);
+          }
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        
+        if (error instanceof KnownError) {
+          throw error;
+        }
+        
+        throw new KnownError("Failed to edit message. Release cancelled.");
       }
-
-      message = editedMessage as string;
-
+      
       // Confirm the edited message
       const confirmed = await confirm({
         message: `Use this edited message?\n\n   ${message}\n`,
@@ -114,7 +147,7 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
         return;
       }
     }
-
+    
     // No additional confirmation needed for 'commit' path as they've already chosen to commit
 
     // release next version
