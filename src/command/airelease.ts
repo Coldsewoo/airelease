@@ -100,15 +100,16 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
       // Write initial message to the temp file
       await fs.writeFile(tmpFile, message);
       
-      // Open in default editor - opens the default text editor on the user's system
-      const editor = process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi');
+      // Use editor from config instead of env var
+      // Priority: config.editor -> EDITOR env var -> platform default
+      const editorToUse = config.editor || process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi');
       
       try {
-        outro(`Opening message in ${editor}. Save and close when finished.`);
+        outro(`Opening message in ${editorToUse}. Save and close when finished.`);
         
         // Use spawn directly to properly handle terminal interaction
         const { spawn } = await import('child_process');
-        const editorProcess = spawn(editor, [tmpFile], {
+        const editorProcess = spawn(editorToUse, [tmpFile], {
           stdio: 'inherit',
           shell: true
         });
