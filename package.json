@@ -1,6 +1,6 @@
 {
   "name": "airelease",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "Automatically generates release notes with versioning using AI.",
   "keywords": [
     "ai",
