@@ -47,7 +47,20 @@ const COMMON_EDITORS =
 
 // Config parsers - some are now async
 const configParsers = {
+  api_provider(provider?: string) {
+    if (!provider) {
+      return "openai";
+    }
+    
+    parseAssert(
+      "api_provider",
+      provider === "openai" || provider === "anthropic",
+      "Must be either 'openai' or 'anthropic'"
+    );
+    return provider;
+  },
   OPENAI_KEY(key?: string) {
+    // Skip validation if using Anthropic
     if (!key) {
       throw new KnownError(
         "Please set your OpenAI API key via `airelease config set OPENAI_KEY=<your token>`"
@@ -56,6 +69,17 @@ const configParsers = {
     parseAssert("OPENAI_KEY", key.startsWith("sk-"), 'Must start with "sk-"');
     // Key can range from 43~51 characters. There's no spec to assert this.
 
+    return key;
+  },
+  ANTHROPIC_API_KEY(key?: string) {
+    if (!key) {
+      throw new KnownError(
+        "Please set your Anthropic API key via `airelease config set ANTHROPIC_API_KEY=<your token>`"
+      );
+    }
+    // Validate Anthropic API key format
+    parseAssert("ANTHROPIC_API_KEY", key.startsWith("sk-"), 'Must start with "sk-"');
+    
     return key;
   },
   locale(locale?: string) {
@@ -71,10 +95,36 @@ const configParsers = {
     );
     return locale;
   },
-  model(model?: string) {
+  model(model?: string, otherConfig?: RawConfig) {
+    // Check if we have a provider set to determine the default model
+    const provider = otherConfig?.api_provider || "openai";
+    
     if (!model || model.length === 0) {
-      return "gpt-3.5-turbo";
+      // Use appropriate default based on provider
+      return provider === "anthropic" ? "claude-3-haiku-20240307" : "gpt-3.5-turbo";
     }
+
+    // Define valid models for each provider
+    const openaiModels = [
+      "gpt-3.5-turbo", 
+      "gpt-4", 
+      "gpt-4-turbo",
+      "gpt-4o"
+    ];
+    
+    const anthropicModels = [
+      "claude-3-opus-20240229",
+      "claude-3-sonnet-20240229",
+      "claude-3-haiku-20240307"
+    ];
+    
+    const allModels = [...openaiModels, ...anthropicModels];
+    
+    parseAssert(
+      "model",
+      allModels.includes(model),
+      `Invalid model. Must be one of: ${allModels.join(", ")}`
+    );
 
     return model as TiktokenModel;
   },
@@ -177,19 +227,36 @@ export const getConfig = async (
 ): Promise<ValidConfig> => {
   const config = await readConfigFile();
   const parsedConfig: Record<string, unknown> = {};
+  const mergedConfig = { ...config, ...cliConfig };
 
+  // First process api_provider to use it for model default
+  const apiProviderKey = 'api_provider' as ConfigKeys;
+  const apiProviderParser = configParsers[apiProviderKey];
+  const apiProviderValue = cliConfig?.[apiProviderKey] ?? config[apiProviderKey];
+
+  if (suppressErrors) {
+    try {
+      parsedConfig[apiProviderKey] = await Promise.resolve(apiProviderParser(apiProviderValue));
+    } catch {}
+  } else {
+    parsedConfig[apiProviderKey] = await Promise.resolve(apiProviderParser(apiProviderValue));
+  }
+
+  // Process the rest of the keys
   for (const key of Object.keys(configParsers) as ConfigKeys[]) {
+    if (key === 'api_provider') continue; // Skip as already processed
+
     const parser = configParsers[key];
     const value = cliConfig?.[key] ?? config[key];
 
     if (suppressErrors) {
       try {
-        // Handle both sync and async parsers
-        parsedConfig[key] = await Promise.resolve(parser(value));
+        // Handle both sync and async parsers, passing the merged config for context
+        parsedConfig[key] = await Promise.resolve(parser(value, mergedConfig));
       } catch {}
     } else {
-      // Handle both sync and async parsers
-      parsedConfig[key] = await Promise.resolve(parser(value));
+      // Handle both sync and async parsers, passing the merged config for context
+      parsedConfig[key] = await Promise.resolve(parser(value, mergedConfig));
     }
   }
 

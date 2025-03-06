@@ -18,6 +18,11 @@ cli(
           "Target release version tag. If not provided, the latest release tag will be used.",
         alias: "t",
       },
+      api: {
+        type: String,
+        description: "API provider to use: 'openai' or 'anthropic'",
+        alias: "a",
+      },
     },
     help: {
       description,
@@ -27,10 +32,7 @@ cli(
   (argv) => {
     airelease(
       argv.flags.tag,
-      //   argv.flags.generate,
-      //   argv.flags.exclude,
-      //   argv.flags.all,
-      //   argv.flags.type,
+      argv.flags.api,
       rawArgv
     );
   },
