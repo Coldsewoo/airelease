@@ -103,7 +103,7 @@ const configParsers = {
     
     if (!model || model.length === 0) {
       // Use appropriate default based on provider
-      return provider === "anthropic" ? "claude-3-5-haiku-latest" : "gpt-3.5-turbo";
+      return provider === "anthropic" ? "claude-3-7-sonnet-latest" : "gpt-3.5-turbo";
     }
 
     // Define valid models for each provider
