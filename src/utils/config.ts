@@ -47,7 +47,20 @@ const COMMON_EDITORS =
 
 // Config parsers - some are now async
 const configParsers = {
+  api_provider(provider?: string) {
+    if (!provider) {
+      return "openai";
+    }
+    
+    parseAssert(
+      "api_provider",
+      provider === "openai" || provider === "anthropic",
+      "Must be either 'openai' or 'anthropic'"
+    );
+    return provider;
+  },
   OPENAI_KEY(key?: string) {
+    // Skip validation if using Anthropic
     if (!key) {
       throw new KnownError(
         "Please set your OpenAI API key via `airelease config set OPENAI_KEY=<your token>`"
@@ -56,6 +69,17 @@ const configParsers = {
     parseAssert("OPENAI_KEY", key.startsWith("sk-"), 'Must start with "sk-"');
     // Key can range from 43~51 characters. There's no spec to assert this.
 
+    return key;
+  },
+  ANTHROPIC_API_KEY(key?: string) {
+    if (!key) {
+      throw new KnownError(
+        "Please set your Anthropic API key via `airelease config set ANTHROPIC_API_KEY=<your token>`"
+      );
+    }
+    // Validate Anthropic API key format
+    parseAssert("ANTHROPIC_API_KEY", key.startsWith("sk-"), 'Must start with "sk-"');
+    
     return key;
   },
   locale(locale?: string) {
@@ -71,10 +95,39 @@ const configParsers = {
     );
     return locale;
   },
-  model(model?: string) {
+  model(model?: string, otherConfig?: RawConfig | null) {
+    // Ensure otherConfig is at least an empty object if undefined
+    otherConfig = otherConfig || {};
+    // Check if we have a provider set to determine the default model
+    const provider = otherConfig?.api_provider || "openai";
+    
     if (!model || model.length === 0) {
-      return "gpt-3.5-turbo";
+      // Use appropriate default based on provider
+      return provider === "anthropic" ? "claude-3-7-sonnet-latest" : "gpt-3.5-turbo";
     }
+
+    // Define valid models for each provider
+    const openaiModels = [
+      "gpt-3.5-turbo", 
+      "gpt-4", 
+      "gpt-4-turbo",
+      "gpt-4o"
+    ];
+    
+    const anthropicModels = [
+      "claude-3-opus-latest",
+      "claude-3-5-haiku-latest",
+      "claude-3-7-sonnet-latest"
+    ];
+    
+    // Only validate against models for the selected provider
+    const validModels = [...openaiModels, ...anthropicModels]
+    
+    parseAssert(
+      "model",
+      validModels.includes(model),
+      `Invalid model for ${provider}. Must be one of: ${validModels.join(", ")}`
+    );
 
     return model as TiktokenModel;
   },
@@ -149,14 +202,15 @@ const configParsers = {
 // Export the lists of editors for UI selection
 export const AVAILABLE_EDITORS = COMMON_EDITORS;
 
-type ConfigKeys = keyof typeof configParsers;
+// Define key literals first to avoid circular reference
+type ConfigKey = 'api_provider' | 'OPENAI_KEY' | 'ANTHROPIC_API_KEY' | 'locale' | 'model' | 'timeout' | 'editor';
 
 type RawConfig = {
-  [key in ConfigKeys]?: string;
+  [key in ConfigKey]?: string;
 };
 
 export type ValidConfig = {
-  [Key in ConfigKeys]: Awaited<ReturnType<(typeof configParsers)[Key]>>;
+  [Key in ConfigKey]: Awaited<ReturnType<(typeof configParsers)[Key]>>;
 };
 
 const configPath = path.join(os.homedir(), ".airelease");
@@ -177,19 +231,39 @@ export const getConfig = async (
 ): Promise<ValidConfig> => {
   const config = await readConfigFile();
   const parsedConfig: Record<string, unknown> = {};
+  const mergedConfig = { ...config, ...cliConfig };
 
-  for (const key of Object.keys(configParsers) as ConfigKeys[]) {
+  // First process api_provider to use it for model default
+  const apiProviderKey = 'api_provider' as ConfigKey;
+  const apiProviderParser = configParsers[apiProviderKey];
+  const apiProviderValue = cliConfig?.[apiProviderKey] ?? config[apiProviderKey];
+
+  if (suppressErrors) {
+    try {
+      parsedConfig[apiProviderKey] = await Promise.resolve(apiProviderParser(apiProviderValue));
+    } catch {}
+  } else {
+    parsedConfig[apiProviderKey] = await Promise.resolve(apiProviderParser(apiProviderValue));
+  }
+
+  // Make sure we have the API provider in mergedConfig
+  mergedConfig.api_provider = parsedConfig[apiProviderKey] as string;
+  
+  // Process the rest of the keys
+  for (const key of Object.keys(configParsers) as ConfigKey[]) {
+    if (key === 'api_provider') continue; // Skip as already processed
+
     const parser = configParsers[key];
     const value = cliConfig?.[key] ?? config[key];
 
     if (suppressErrors) {
       try {
-        // Handle both sync and async parsers
-        parsedConfig[key] = await Promise.resolve(parser(value));
+        // Handle both sync and async parsers, passing the merged config for context
+        parsedConfig[key] = await Promise.resolve(parser(value, mergedConfig));
       } catch {}
     } else {
-      // Handle both sync and async parsers
-      parsedConfig[key] = await Promise.resolve(parser(value));
+      // Handle both sync and async parsers, passing the merged config for context
+      parsedConfig[key] = await Promise.resolve(parser(value, mergedConfig));
     }
   }
 
@@ -210,9 +284,9 @@ export const setConfigs = async (keyValues: [key: string, value: string][]) => {
     try {
       // Handle both sync and async parsers
       const parsed = await Promise.resolve(
-        configParsers[key as ConfigKeys](value)
+        configParsers[key as ConfigKey](value)
       );
-      config[key as ConfigKeys] = parsed as any;
+      config[key as ConfigKey] = parsed as any;
     } catch (error) {
       if (error instanceof KnownError) {
         // Add more detailed information based on the key
@@ -233,8 +307,14 @@ export const setConfigs = async (keyValues: [key: string, value: string][]) => {
             `${error.message}\nExample valid locales: en, en-US, fr, de-DE, ja, zh-CN`
           );
         } else if (key === "model") {
+          // Get the correct provider to show the right models
+          const currentProvider = config.api_provider || "openai";
+          const modelOptions = currentProvider === "anthropic" ?
+            "claude-3-opus-latest, claude-3-5-haiku-latest, claude-3-7-sonnet-latest" :
+            "gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4o";
+            
           throw new KnownError(
-            `${error.message}\nAvailable models: gpt-3.5-turbo, gpt-4, text-davinci-003`
+            `${error.message}\nAvailable models for ${currentProvider}: ${modelOptions}`
           );
         } else if (key === "timeout") {
           throw new KnownError(
