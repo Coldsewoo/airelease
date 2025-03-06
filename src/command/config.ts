@@ -14,6 +14,20 @@ export default command(
 
       if (mode === "get") {
         const config = await getConfig({}, true);
+        
+        // If no specific keys are provided, show all config values
+        if (keyValues.length === 0) {
+          console.log('Current configuration:');
+          for (const [key, value] of Object.entries(config)) {
+            console.log(`  ${key}=${value}`);
+          }
+          console.log('\nAPI Provider Info:');
+          console.log(`  Current API: ${config.api_provider || 'openai'}`);
+          console.log(`  Available providers: openai, anthropic`);
+          return;
+        }
+        
+        // Show specific requested keys
         for (const key of keyValues) {
           if (hasOwn(config, key)) {
             console.log(`${key}=${config[key as keyof typeof config]}`);

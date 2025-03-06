@@ -16,10 +16,11 @@ import {
   getDetectedCommits,
 } from "../utils/git.js";
 import { getConfig } from "../utils/config.js";
-import { generateCommitMessage } from "../utils/openai.js";
+import { generateCommitMessage as generateOpenAICommitMessage } from "../utils/openai.js";
+import { generateCommitMessage as generateAnthropicCommitMessage } from "../utils/anthropic.js";
 import { KnownError, handleCliError } from "../utils/error.js";
 
-export default async (target_tag: string | undefined, rawArgv: string[]) =>
+export default async (target_tag: string | undefined, api_provider: string | undefined, rawArgv: string[]) =>
   (async () => {
     intro(bgCyan(black(" airelease ")));
     await assertGitRepo();
@@ -47,20 +48,48 @@ export default async (target_tag: string | undefined, rawArgv: string[]) =>
     const { env } = process;
     const config = await getConfig({
       OPENAI_KEY: env.OPENAI_KEY || env.OPENAI_API_KEY,
+      ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY || env.ANTHROPIC_KEY,
+      // Allow overriding api_provider from command line
+      api_provider: api_provider,
     });
 
     const s = spinner();
-    s.start("The AI is analyzing your changes");
+    s.start(`The AI (using ${config.api_provider || 'openai'}) is analyzing your changes`);
     let messages: string[];
     try {
-      messages = await generateCommitMessage(
-        config.OPENAI_KEY,
-        config.model,
-        config.locale,
-        commitMessages.message,
-        1,
-        10000
-      );
+      // Choose API based on provider
+      if (config.api_provider === "anthropic") {
+        if (!config.ANTHROPIC_API_KEY) {
+          throw new KnownError(
+            "Anthropic API key is required. Please set it with 'airelease config set ANTHROPIC_API_KEY=<your key>'"
+          );
+        }
+        
+        messages = await generateAnthropicCommitMessage(
+          config.ANTHROPIC_API_KEY,
+          config.model,
+          config.locale,
+          commitMessages.message,
+          1,
+          config.timeout
+        );
+      } else {
+        // Default to OpenAI
+        if (!config.OPENAI_KEY) {
+          throw new KnownError(
+            "OpenAI API key is required. Please set it with 'airelease config set OPENAI_KEY=<your key>'"
+          );
+        }
+        
+        messages = await generateOpenAICommitMessage(
+          config.OPENAI_KEY,
+          config.model,
+          config.locale,
+          commitMessages.message,
+          1,
+          config.timeout
+        );
+      }
     } finally {
       s.stop("Changes analyzed");
     }
