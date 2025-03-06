@@ -6,7 +6,11 @@
     "ai",
     "git",
     "version",
-    "release"
+    "release",
+    "npm",
+    "major",
+    "minor",
+    "patch"
   ],
   "license": "MIT",
   "author": "Coldsewoo (@Coldsewoo)",
