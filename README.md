@@ -17,7 +17,7 @@ npm i -g airelease@latest
 Get your API key from one of the following providers:
 
 - [OpenAI](https://platform.openai.com/account/api-keys)
-- [Anthropic](https://console.anthropic.com/keys)
+- [Anthropic](https://console.anthropic.com/settings/keys)
 
 ### 3. Set API Key
 
@@ -132,7 +132,7 @@ If you'd like to contribute to `airelease`, here's how to set up your developmen
 2. Install dependencies:
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. Make your changes and test locally:
