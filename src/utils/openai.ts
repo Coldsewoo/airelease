@@ -141,7 +141,7 @@ export const generateCommitMessage = async (
         top_p: 1,
         frequency_penalty: 0,
         presence_penalty: 0,
-        max_tokens: 1000,
+        max_tokens: 5000,
         stream: false,
         n: completions,
       },
