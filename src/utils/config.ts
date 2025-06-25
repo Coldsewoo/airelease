@@ -121,13 +121,15 @@ const configParsers = {
     ];
     
     // Only validate against models for the selected provider
-    const validModels = [...openaiModels, ...anthropicModels]
+    // const validModels = [...openaiModels, ...anthropicModels]
     
-    parseAssert(
-      "model",
-      validModels.includes(model),
-      `Invalid model for ${provider}. Must be one of: ${validModels.join(", ")}`
-    );
+    // parseAssert(
+    //   "model",
+    //   validModels.includes(model),
+    //   `Invalid model for ${provider}. Must be one of: ${validModels.join(", ")}`
+    // );
+
+    
 
     return model as TiktokenModel;
   },
