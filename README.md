@@ -107,16 +107,11 @@ When editing messages, the tool opens your configured text editor (or system def
 
 #### OpenAI Models
 
-- gpt-3.5-turbo (default)
-- gpt-4
-- gpt-4-turbo
-- gpt-4o
+- https://platform.openai.com/docs/models
 
 #### Anthropic Models
 
-- claude-3-opus-latest
-- claude-3-5-haiku-latest (default)
-- claude-3-7-sonnet-latest
+- https://docs.anthropic.com/en/docs/about-claude/models/overview
 
 ### Contributing
 
