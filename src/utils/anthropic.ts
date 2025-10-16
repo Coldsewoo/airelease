@@ -141,9 +141,9 @@ export const generateCommitMessage = async (
   try {
     // Use the anthropic model directly if it's a Claude model,
     // otherwise default to Claude Haiku which is fast and efficient
-    const anthropicModel = model.includes("claude") 
-      ? model 
-      : "claude-3-5-haiku-latest";
+    const anthropicModel = model.includes("claude")
+      ? model
+      : "claude-haiku-4.5-20251015"; // Updated default fallback
 
     const completion = await createAnthropicCompletion(
       apiKey,

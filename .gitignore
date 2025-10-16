@@ -34,3 +34,6 @@ dev/*
 
 safelist.txt
 vite.config.ts.timestamp-*
+
+docs
+AGENTS.md
