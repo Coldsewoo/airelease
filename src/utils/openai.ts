@@ -4,10 +4,7 @@ import type {
   CreateChatCompletionRequest,
   CreateChatCompletionResponse,
 } from "openai";
-import {
-  type TiktokenModel,
-  // encoding_for_model,
-} from "@dqbd/tiktoken";
+// Tokenizer types are not used for model typing to keep provider-agnostic strings
 import { KnownError } from "./error.js";
 import { generatePrompt } from "./prompt.js";
 
@@ -116,7 +113,7 @@ const deduplicateMessages = (array: string[]) => Array.from(new Set(array));
 
 export const generateCommitMessage = async (
   apiKey: string,
-  model: TiktokenModel,
+  model: string,
   locale: string,
   commitMessages: string,
   completions: number,
