@@ -41,8 +41,9 @@ Available Configuration Variables:
 
   model               AI model to use
                       OpenAI models: gpt-4o, gpt-4-turbo, gpt-3.5-turbo
-                      Anthropic models: claude-sonnet-4.5-20250929, claude-haiku-4.5-20251015
-                      Default: gpt-4o (OpenAI) or claude-sonnet-4.5-20250929 (Anthropic)
+                      Anthropic models: claude-sonnet-4-5-20250929, claude-haiku-4-5-20251001,
+                                        claude-opus-4-1-20250805, claude-sonnet-4-20250514
+                      Default: gpt-4o (OpenAI) or claude-sonnet-4-5-20250929 (Anthropic)
 
   timeout             API request timeout in milliseconds
                       Minimum: 500

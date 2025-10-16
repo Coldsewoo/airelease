@@ -100,8 +100,8 @@ const configParsers = {
 
     if (!model || model.length === 0) {
       // Use appropriate default based on provider
-      // 2025 defaults: fast, cost-effective models
-      return provider === 'anthropic' ? 'claude-sonnet-4.5-20250929' : 'gpt-4o'
+      // 2025 defaults: balanced models
+      return provider === 'anthropic' ? 'claude-sonnet-4-5-20250929' : 'gpt-4o'
     }
 
     // Define valid models for each provider
@@ -119,16 +119,15 @@ const configParsers = {
     ]
 
     const anthropicModels = [
-      // Claude 4 family (2025)
-      'claude-sonnet-4.5-20250929',
-      'claude-haiku-4.5-20251015',
-      'claude-opus-4.1-20250805',
-      'claude-sonnet-4-20250522',
-      'claude-opus-4-20250522',
-      // Legacy
-      'claude-3-opus-latest',
-      'claude-3-5-haiku-latest',
-      'claude-3-7-sonnet-latest',
+      // Claude 4.5 family (Latest - 2025)
+      'claude-sonnet-4-5-20250929',
+      'claude-haiku-4-5-20251001',
+      // Claude 4 family
+      'claude-sonnet-4-20250514',
+      'claude-opus-4-1-20250805',
+      // Previous generation
+      'claude-3-7-sonnet-20250219',
+      'claude-3-5-haiku-20241022',
     ]
 
     // Only validate against models for the selected provider

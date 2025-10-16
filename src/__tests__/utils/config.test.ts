@@ -161,7 +161,7 @@ describe('config.ts', () => {
 
 			const config = await getConfig({ api_provider: 'anthropic' }, true);
 
-			expect(config.model).toBe('claude-haiku-4.5-20251015');
+			expect(config.model).toBe('claude-sonnet-4-5-20250929');
 		});
 
 		it('should accept custom model', async () => {
