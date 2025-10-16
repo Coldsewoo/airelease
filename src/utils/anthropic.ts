@@ -156,7 +156,6 @@ export const generateCommitMessage = async (
           },
         ],
         temperature: 0.7,
-        top_p: 1,
         max_tokens: 5000,
         stream: false,
       },
