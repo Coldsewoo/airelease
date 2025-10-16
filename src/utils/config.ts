@@ -101,7 +101,7 @@ const configParsers = {
     if (!model || model.length === 0) {
       // Use appropriate default based on provider
       // 2025 defaults: fast, cost-effective models
-      return provider === 'anthropic' ? 'claude-haiku-4.5-20251015' : 'gpt-4o'
+      return provider === 'anthropic' ? 'claude-sonnet-4.5-20250929' : 'gpt-4o'
     }
 
     // Define valid models for each provider
