@@ -15,6 +15,7 @@ import {
   getCommitMessagesFromPrevRelease,
   getDetectedCommits,
 } from "../utils/git.js";
+import { assertSupportedProject, bumpProjectVersion, getCurrentVersion } from "../utils/npm.js";
 import { getConfig } from "../utils/config.js";
 import { generateCommitMessage as generateOpenAICommitMessage } from "../utils/openai.js";
 import { generateCommitMessage as generateAnthropicCommitMessage } from "../utils/anthropic.js";
@@ -23,8 +24,15 @@ import { KnownError, handleCliError } from "../utils/error.js";
 export default async (target_tag: string | undefined, api_provider: string | undefined, rawArgv: string[]) =>
   (async () => {
     intro(bgCyan(black(" airelease ")));
+    const projectType = await assertSupportedProject();
     await assertGitRepo();
     await assertCleanWorkingTree();
+
+    // Get current version from project files
+    const currentVersion = await getCurrentVersion(projectType);
+    if (currentVersion) {
+      console.log(`   Current version: ${dim(currentVersion)}`);
+    }
 
     const detectingFiles = spinner();
 
@@ -197,15 +205,8 @@ export default async (target_tag: string | undefined, api_provider: string | und
     
     // No additional confirmation needed for 'commit' path as they've already chosen to commit
 
-    // release next version
-    await execa("npm", ["version", ...rawArgv]);
-
-    // get the new version
-    const { stdout: version } = await execa("git", [
-      "describe",
-      "--tags",
-      "--abbrev=0",
-    ]);
+    // release next version - use project-specific version bumping
+    const version = await bumpProjectVersion(projectType, rawArgv[0], rawArgv);
 
     message = version + "\n\n" + message;
 

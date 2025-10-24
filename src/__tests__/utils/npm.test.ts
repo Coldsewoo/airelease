@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { assertArgv } from '../../utils/npm.js';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { assertArgv, assertSupportedProject, detectProjectType } from '../../utils/npm.js';
 import { KnownError } from '../../utils/error.js';
+import { createFixture } from 'fs-fixture';
 
 describe('npm.ts', () => {
 	describe('assertArgv', () => {
@@ -56,6 +57,128 @@ describe('npm.ts', () => {
 			expect(() => assertArgv(['majors'])).toThrow(KnownError);
 			expect(() => assertArgv(['patching'])).toThrow(KnownError);
 			expect(() => assertArgv(['minors'])).toThrow(KnownError);
+		});
+	});
+
+	describe('detectProjectType', () => {
+		let fixture: Awaited<ReturnType<typeof createFixture>>;
+		let originalCwd: string;
+
+		beforeEach(() => {
+			originalCwd = process.cwd();
+		});
+
+		afterEach(async () => {
+			process.chdir(originalCwd);
+			if (fixture) {
+				await fixture.rm();
+			}
+		});
+
+		it('should detect npm project', async () => {
+			fixture = await createFixture({
+				'package.json': JSON.stringify({ name: 'test' }),
+			});
+			process.chdir(fixture.path);
+
+			const type = await detectProjectType();
+			expect(type).toBe('npm');
+		});
+
+		it('should detect Python project with setup.py', async () => {
+			fixture = await createFixture({
+				'setup.py': 'from setuptools import setup',
+			});
+			process.chdir(fixture.path);
+
+			const type = await detectProjectType();
+			expect(type).toBe('python');
+		});
+
+		it('should detect Python project with pyproject.toml', async () => {
+			fixture = await createFixture({
+				'pyproject.toml': '[project]\nversion = "1.0.0"',
+			});
+			process.chdir(fixture.path);
+
+			const type = await detectProjectType();
+			expect(type).toBe('python');
+		});
+
+		it('should throw for Rust project', async () => {
+			fixture = await createFixture({
+				'Cargo.toml': '[package]',
+			});
+			process.chdir(fixture.path);
+
+			await expect(detectProjectType()).rejects.toThrow(KnownError);
+			await expect(detectProjectType()).rejects.toThrow('Rust project detected');
+		});
+
+		it('should throw for Go project', async () => {
+			fixture = await createFixture({
+				'go.mod': 'module test',
+			});
+			process.chdir(fixture.path);
+
+			await expect(detectProjectType()).rejects.toThrow(KnownError);
+			await expect(detectProjectType()).rejects.toThrow('Go project detected');
+		});
+
+		it('should return unsupported for unrecognized project', async () => {
+			fixture = await createFixture({
+				'README.md': '# Test',
+			});
+			process.chdir(fixture.path);
+
+			const type = await detectProjectType();
+			expect(type).toBe('unsupported');
+		});
+	});
+
+	describe('assertSupportedProject', () => {
+		let fixture: Awaited<ReturnType<typeof createFixture>>;
+		let originalCwd: string;
+
+		beforeEach(() => {
+			originalCwd = process.cwd();
+		});
+
+		afterEach(async () => {
+			process.chdir(originalCwd);
+			if (fixture) {
+				await fixture.rm();
+			}
+		});
+
+		it('should not throw for npm project', async () => {
+			fixture = await createFixture({
+				'package.json': JSON.stringify({ name: 'test' }),
+			});
+			process.chdir(fixture.path);
+
+			const type = await assertSupportedProject();
+			expect(type).toBe('npm');
+		});
+
+		it('should not throw for Python project', async () => {
+			fixture = await createFixture({
+				'setup.py': 'from setuptools import setup\n\nsetup(version="1.0.0")',
+			});
+			process.chdir(fixture.path);
+
+			const type = await assertSupportedProject();
+			expect(type).toBe('python');
+		});
+
+		it('should throw for unsupported project', async () => {
+			fixture = await createFixture({
+				'README.md': '# Test',
+			});
+			process.chdir(fixture.path);
+
+			await expect(assertSupportedProject()).rejects.toThrow(KnownError);
+			await expect(assertSupportedProject()).rejects.toThrow('No supported project');
 		});
 	});
 });

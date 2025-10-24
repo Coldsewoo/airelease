@@ -93,6 +93,7 @@ describe('git.ts', () => {
 			// Mock git describe
 			vi.mocked(execa).mockResolvedValueOnce({
 				stdout: mockTag,
+				failed: false,
 			} as any);
 
 			// Mock git log
@@ -108,11 +109,11 @@ describe('git.ts', () => {
 				previous_tag: mockTag,
 			});
 
-			expect(execa).toHaveBeenCalledWith('git', [
-				'describe',
-				'--tags',
-				'--abbrev=0',
-			]);
+			expect(execa).toHaveBeenCalledWith(
+				'git',
+				['describe', '--tags', '--abbrev=0'],
+				{ reject: false }
+			);
 			expect(execa).toHaveBeenCalledWith('git', [
 				'log',
 				'--oneline',
@@ -146,6 +147,7 @@ describe('git.ts', () => {
 			// Mock git describe
 			vi.mocked(execa).mockResolvedValueOnce({
 				stdout: mockTag,
+				failed: false,
 			} as any);
 
 			// Mock git log with empty output
@@ -158,6 +160,36 @@ describe('git.ts', () => {
 			expect(result).toBeUndefined();
 		});
 
+		it('should handle case when no tags exist', async () => {
+			const mockCommits = 'abc123 initial commit\ndef456 second commit';
+
+			// Mock git describe (no tags)
+			vi.mocked(execa).mockResolvedValueOnce({
+				stdout: '',
+				failed: true,
+			} as any);
+
+			// Mock git log (all commits)
+			vi.mocked(execa).mockResolvedValueOnce({
+				stdout: mockCommits,
+			} as any);
+
+			const result = await getCommitMessagesFromPrevRelease();
+
+			expect(result).toEqual({
+				commits: ['initial commit', 'second commit'],
+				message: mockCommits,
+				previous_tag: 'initial',
+			});
+
+			expect(execa).toHaveBeenCalledWith(
+				'git',
+				['describe', '--tags', '--abbrev=0'],
+				{ reject: false }
+			);
+			expect(execa).toHaveBeenCalledWith('git', ['log', '--oneline']);
+		});
+
 		it('should properly strip commit hashes', async () => {
 			const mockTag = 'v1.0.0';
 			const mockCommits =
@@ -165,6 +197,7 @@ describe('git.ts', () => {
 
 			vi.mocked(execa).mockResolvedValueOnce({
 				stdout: mockTag,
+				failed: false,
 			} as any);
 
 			vi.mocked(execa).mockResolvedValueOnce({
