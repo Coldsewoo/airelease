@@ -37,7 +37,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "prepack": "pnpm build && clean-pkg-json"
+    "prepack": "pnpm build && clean-pkg-json",
+    "postpack": "git checkout package.json"
   },
   "dependencies": {
     "@dqbd/tiktoken": "^1.0.22"
