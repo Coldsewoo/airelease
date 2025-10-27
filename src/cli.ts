@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 import { join, dirname } from "path";
 import configCommand from "./command/config.js";
 import airelease from "./command/airelease.js";
-import { assertArgv } from "./utils/npm.js";
+import { assertArgv } from "./utils/project.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

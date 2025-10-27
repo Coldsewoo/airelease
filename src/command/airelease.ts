@@ -15,7 +15,7 @@ import {
   getCommitMessagesFromPrevRelease,
   getDetectedCommits,
 } from "../utils/git.js";
-import { assertSupportedProject, bumpProjectVersion, getCurrentVersion } from "../utils/npm.js";
+import { assertSupportedProject, bumpProjectVersion, getCurrentVersion } from "../utils/project.js";
 import { getConfig } from "../utils/config.js";
 import { generateCommitMessage as generateOpenAICommitMessage } from "../utils/openai.js";
 import { generateCommitMessage as generateAnthropicCommitMessage } from "../utils/anthropic.js";
