@@ -23,21 +23,11 @@ export const bumpNpmVersion = async (
   rawArgv: string[]
 ): Promise<string> => {
   await execa("npm", ["version", ...rawArgv]);
-  // npm version creates a tag, so we can get it from git
-  const { stdout: npmVersion, failed: npmFailed } = await execa(
-    "git",
-    ["describe", "--tags", "--abbrev=0"],
-    { reject: false }
-  );
 
-  if (npmFailed) {
-    // Fallback to reading from package.json
-    const currentVersion = await getCurrentNpmVersion();
-    if (!currentVersion) {
-      throw new KnownError("Could not determine version from package.json");
-    }
-    return currentVersion;
+  // Read the new version from package.json after bump
+  const newVersion = await getCurrentNpmVersion();
+  if (!newVersion) {
+    throw new KnownError("Could not determine version from package.json");
   }
-
-  return npmVersion.trim();
+  return `v${newVersion}`;
 };

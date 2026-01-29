@@ -37,3 +37,6 @@ vite.config.ts.timestamp-*
 
 docs
 AGENTS.md
+.claude/
+.tldr/
+.tldrignore
